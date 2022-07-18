@@ -2,7 +2,8 @@ ACTIONS_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS actions (
 	file_id TEXT PRIMARY KEY,
 	date DATE,
-	activity TEXT
+	activity TEXT,
+    action_id TEXT
 );
 """
 DOCUMENTS_TABLE_SQL = """
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS documents (
 	name TEXT,
 	url TEXT,
 	date DATE,
-	actions_index INTEGER
+	document_id TEXT
 );
 """
 SUMMARY_TABLE_SQL = """
@@ -45,8 +46,7 @@ CREATE TABLE IF NOT EXISTS members (
 """
 ACTIONS_DOCUMENTS_SQL = """
 CREATE TABLE IF NOT EXISTS actions_documents (
-    file_id TEXT PRIMARY KEY,
-    action_index INTEGER NOT NULL,
-    document_index INTEGER NOT NULL
+    action_id TEXT NOT NULL,
+    document_id TEXT NOT NULL
 );
 """

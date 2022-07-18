@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 
 from bs4 import BeautifulSoup
+from datetime import datetime as dt
 from scrapy import Spider
 
 BASE_URL = 'https://cityclerk.lacity.org/lacityclerkconnect/index.cfm?fa=ccfi.viewrecord&cfnumber={FILE_ID}'
@@ -179,3 +180,6 @@ def get_vote_info(soup:BeautifulSoup) -> dict:
         **summary,
         members=df.to_dict(orient='records')
     )
+
+def create_timestamp(format_:str='%Y-%m-%d_%H-%M-%S'):
+    return dt.today().strftime(format_)

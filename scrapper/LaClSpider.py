@@ -15,7 +15,7 @@ class LaclspiderSpider(scrapy.Spider):
         'https://cityclerk.lacity.org/lacityclerkconnect/index.cfm?fa=ccfi.viewrecord&cfnumber=10-0180'
     ]
 
-    custom_settings = {'FEEDS':{f'../extracted_raw/LaCLerk_spider_results.json':{'format':'json'}}}
+    custom_settings = {'FEEDS':{f'../extracted_raw/LaCLerk_spider_results__{create_timestamp()}.json':{'format':'json'}}}
 
     def parse(self, response):
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -23,6 +23,7 @@ class LaclspiderSpider(scrapy.Spider):
         yield dict(
             url=response.url,
             **get_summary(soup, file_id),
+            crawled_date = create_timestamp('%Y-%m-%dT%H:%M:%S'),
             vote_data=get_vote_info(soup),
             actions=get_events(soup),
             documents=get_documents(soup)   

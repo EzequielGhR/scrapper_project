@@ -1,6 +1,10 @@
 import pandas as pd
+import json
+import logging
+import os
 
 from sqlalchemy import create_engine
+from datetime import datetime as dt
 from constants import (
     ACTIONS_DOCUMENTS_SQL,
     ACTIONS_TABLE_SQL,
@@ -11,6 +15,16 @@ from constants import (
     ACTIONS_DOCUMENTS_SQL
 )
 
+os.makedirs('../db', exist_ok=True)
+os.makedirs('logs', exist_ok=True)
+
+logging.basicConfig(
+    filename='logs/transform_load.log',
+    filemode='w',
+    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+    datefmt='%H:%M:%S',
+    level=logging.INFO
+)
 
 def create_tables(json_data:dict, keyword:str):
     file_id = json_data.get('id')
@@ -84,17 +98,22 @@ def table_cleaner(json_data:dict):
     member_df = f(json_data, 'vote_members')
 
     actions_df['action_index'] = actions_df.index
+    actions_df['action_id'] = actions_df.file_id+'-'\
+        +actions_df.action_index.apply(str)+'a'
     documents_df['document_index'] = documents_df.index
+    documents_df['document_id'] = documents_df.file_id+'-'\
+        +documents_df.document_index.apply(str)+'d'
+
 
     actions_documents = actions_df.explode('documents')
     actions_documents['name'] = (
         actions_documents['documents']
-        .apply(lambda doc: doc['name'] if doc else pd.NA)
+        .apply(lambda doc: doc['name'] if not isinstance(doc, float) else pd.NA)
     )
-    actions_documents = actions_documents.dropna(subset=['name'])[['name', 'action_index']]
+    actions_documents = actions_documents.dropna(subset=['name'])[['name', 'action_id']]
     actions_documents = actions_documents.merge(documents_df, how='left', on='name')
     actions_documents = (
-        actions_documents[['action_index', 'document_index', 'file_id']]
+        actions_documents[['action_id', 'document_id']]
         .drop_duplicates(keep='first', ignore_index=True)
     )
 
@@ -108,6 +127,9 @@ def table_cleaner(json_data:dict):
         member_df,
         actions_documents
     )
+
+def parse_ts(raw_date:str):
+    return pd.to_datetime(raw_date, format='%Y-%m-%d_%H-%M-%S')
 
 class DataBase:
     def __init__(self):
@@ -127,7 +149,7 @@ class DataBase:
     @staticmethod
     def create_connection(db_file:str):
         """ create a database connection to a SQLite database """
-        print(f"Connecting to {repr(db_file)}")
+        logging.info(f'Connecting to {repr(db_file)}')
         engine = create_engine(f"sqlite:///../db/{db_file}")
         conn = engine.connect()
         return conn
@@ -145,3 +167,31 @@ class DataBase:
             .drop_duplicates(keep='first')
             .to_sql(table, self.conn, if_exists='replace', index=False)
         )
+
+if __name__ == '__main__':
+    files_by_stamp = {}
+    for file_ in os.listdir('../extracted_raw'):
+        if file_.endswith('.json'):
+            filename, stamp = file_.split('.')[0].split('__')
+            files_by_stamp[parse_ts(stamp)] = file_
+    newest = files_by_stamp[
+        max(files_by_stamp.keys())
+    ]
+    with open(f'../extracted_raw/{newest}') as f:
+        json_ = json.load(f)
+    logging.info(f'reading data from {newest}')
+    for data in json_:
+        logging.info(f'transforming data, file_id = {repr(data["id"])}...')
+        frames = table_cleaner(data)
+        tables = ('actions', 'documents', 'summary','vote', 'members', 'actions_documents')
+        db = DataBase()
+        for f, t in zip(frames, tables):
+            logging.info(f'saving results to table {repr(t)}')
+            try:
+                db.update_from_frame(f, t)
+            except Exception as e:
+                logging.warning(f'error updating from frame, closing connection. Error: {repr(e)}')
+                db.conn.close()
+                raise e
+        logging.info('done, closing connection to database')
+        db.conn.close()
