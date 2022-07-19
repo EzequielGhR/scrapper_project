@@ -1,5 +1,5 @@
 # scrapper_ATC
-Scrapper project for ATC
+Scrapper project originally for ATC
 
 # instructions
 - Run docker_run.sh it will automatically create image with the necesary requirements.
