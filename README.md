@@ -1,5 +1,5 @@
-# scrapper_ATC
-Scrapper project originally for ATC
+# scrapper
+Scrapper project to crawl the cityclerk.lacity.org site.
 
 # instructions
 - Run docker_run.sh it will automatically create image with the necesary requirements.
