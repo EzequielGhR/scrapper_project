@@ -172,7 +172,7 @@ class DataBase:
         for table in self.get_tables():
             (pd
               .read_sql_table(table, self.conn)
-              .to_csv(f'../db/storage_csvs/{table}.csv')
+              .to_csv(f'../db/storage_csvs/{table}.csv', index=False)
             )
 
 if __name__ == '__main__':

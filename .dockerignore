@@ -2,4 +2,3 @@
 *.json
 *.db
 Dockerfile
-tester.ipynb
