@@ -15,7 +15,7 @@ from constants import (
     ACTIONS_DOCUMENTS_SQL
 )
 
-os.makedirs('../db', exist_ok=True)
+os.makedirs('../db/storage_csvs', exist_ok=True)
 os.makedirs('logs', exist_ok=True)
 
 logging.basicConfig(
@@ -167,6 +167,13 @@ class DataBase:
             .drop_duplicates(keep='first')
             .to_sql(table, self.conn, if_exists='replace', index=False)
         )
+    
+    def save_db_csvs(self) -> None:
+        for table in self.get_tables():
+            (pd
+              .read_sql_table(table, self.conn)
+              .to_csv(f'../db/storage_csvs/{table}.csv')
+            )
 
 if __name__ == '__main__':
     files_by_stamp = {}
@@ -186,12 +193,13 @@ if __name__ == '__main__':
         tables = ('actions', 'documents', 'summary','vote', 'members', 'actions_documents')
         db = DataBase()
         for f, t in zip(frames, tables):
-            logging.info(f'saving results to table {repr(t)}')
+            logging.info(f'saving results to table {repr(t)} and creating')
             try:
                 db.update_from_frame(f, t)
             except Exception as e:
                 logging.warning(f'error updating from frame, closing connection. Error: {repr(e)}')
                 db.conn.close()
                 raise e
-        logging.info('done, closing connection to database')
-        db.conn.close()
+    logging.info('done, saving csvs representation and closing connection to database')
+    db.save_db_csvs()
+    db.conn.close()

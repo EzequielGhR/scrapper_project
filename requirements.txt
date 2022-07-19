@@ -1,0 +1,6 @@
+beautifulsoup4==4.11.1
+ipython==8.0.1
+jupyterlab==3.3.4
+pandas==1.4.2
+scrapy==2.6.1
+sqlalchemy==1.4.39
